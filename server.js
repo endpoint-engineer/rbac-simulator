@@ -217,6 +217,81 @@ app.post('/api/admin/approve/:id', checkPermission('*'), (req, res) => {
     res.json({ success: true });
 });
 
+// Decision Simulator — evaluates access without side effects
+app.post('/api/evaluate', (req, res) => {
+    const { user: username, resource } = req.body;
+    const requiredPerm = RESOURCE_PERMISSIONS[resource];
+    const db = readDB();
+
+    if (!username || !db.users[username]) {
+        return res.status(400).json({ error: 'Unknown user' });
+    }
+    if (!requiredPerm) {
+        return res.status(400).json({ error: 'Unknown resource' });
+    }
+
+    const userObj = { name: username, ...db.users[username] };
+    const groupPerms = db.groups[userObj.group].base_permissions;
+    const isSuperAdmin = userObj.group === 'Super Admin';
+
+    // Lockdown
+    const lockdownBlock = db.system_state.emergency_lockdown && !isSuperAdmin;
+
+    // JIT
+    let jitGrant = null;
+    if (db.jit_grants[username]) {
+        const g = db.jit_grants[username];
+        if (g.permission === requiredPerm && Date.now() < g.expiresAt) {
+            jitGrant = g;
+        }
+    }
+
+    const groupMatch = groupPerms.includes(requiredPerm) || groupPerms.includes('*');
+    const overrideMatch = userObj.overrides.includes(requiredPerm);
+    const granted = !lockdownBlock && (isSuperAdmin || jitGrant || groupMatch || overrideMatch);
+
+    let grantSource = null;
+    if (granted) {
+        if (isSuperAdmin) grantSource = 'Super Admin wildcard (*)';
+        else if (jitGrant) grantSource = 'Just-In-Time (JIT) session grant';
+        else if (groupMatch) grantSource = `Group: ${userObj.group}`;
+        else if (overrideMatch) grantSource = 'Individual user override';
+    }
+
+    res.json({
+        granted,
+        lockdownBlock,
+        grantSource,
+        trace: {
+            user: username,
+            group: userObj.group,
+            groupPermissions: groupPerms,
+            overrides: userObj.overrides,
+            requiredPermission: requiredPerm,
+            groupMatch,
+            overrideMatch,
+            jitActive: !!jitGrant,
+            jitGrant
+        }
+    });
+});
+
+// Global app state snapshot (for lockdown banner etc.)
+app.get('/api/state', (req, res) => {
+    const db = readDB();
+    res.json({
+        lockdown: db.system_state.emergency_lockdown,
+        pendingCount: db.pending_approvals.length,
+        jitCount: Object.keys(db.jit_grants).filter(u => Date.now() < db.jit_grants[u].expiresAt).length
+    });
+});
+
+// All users list (for simulator dropdowns)
+app.get('/api/users', (req, res) => {
+    const db = readDB();
+    res.json(db.users);
+});
+
 app.listen(PORT, () => {
     console.log(`Enterprise IGAM running on port ${PORT}`);
 });
