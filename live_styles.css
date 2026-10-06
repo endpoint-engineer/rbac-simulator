@@ -861,5 +861,3 @@ body.has-banner .layout { height: calc(100vh - 40px); margin-top: 40px; }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb { background: #2a2a2a; border-radius: 3px; }
 ::-webkit-scrollbar-thumb:hover { background: #3a3a3a; }
-
-.hidden { display: none !important; }
