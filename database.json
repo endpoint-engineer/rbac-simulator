@@ -1,21 +1,94 @@
 {
-  "homeData": "Welcome to the Corporate Intranet. Please use the navigation to access your allowed areas.",
-  "financeData": [
-    { "id": 1, "description": "Q3 Revenue", "amount": "$5,000,000" },
-    { "id": 2, "description": "Q3 Expenses", "amount": "$3,200,000" }
-  ],
-  "codeRepoData": [
-    { "repo": "core-api", "status": "Passing", "lastCommit": "Fixed authentication bug" },
-    { "repo": "frontend-app", "status": "Failing", "lastCommit": "Updated RBAC dashboard" }
-  ],
-  "auditLogsData": [
-    { "timestamp": "2023-10-06T10:00:00Z", "action": "User Login", "user": "finance_mgr_1" },
-    { "timestamp": "2023-10-06T10:05:00Z", "action": "Viewed Q3 Report", "user": "finance_mgr_1" },
-    { "timestamp": "2023-10-06T10:15:00Z", "action": "Failed Login Attempt", "user": "unknown" }
-  ],
-  "employeeRecordsData": [
-    { "id": 101, "name": "Alice Smith", "department": "Engineering" },
-    { "id": 102, "name": "Bob Jones", "department": "Finance" },
-    { "id": 103, "name": "Carol White", "department": "HR" }
-  ]
+  "system_state": {
+    "emergency_lockdown": false
+  },
+  "groups": {
+    "Super Admin": {
+      "base_permissions": [
+        "*"
+      ]
+    },
+    "Engineering": {
+      "base_permissions": [
+        "view_code",
+        "edit_code"
+      ]
+    },
+    "HR": {
+      "base_permissions": [
+        "view_employee_records"
+      ]
+    },
+    "Finance": {
+      "base_permissions": [
+        "view_finance"
+      ]
+    },
+    "Marketing": {
+      "base_permissions": [
+        "view_marketing"
+      ]
+    },
+    "Interns": {
+      "base_permissions": [
+        "view_notice_boards"
+      ]
+    }
+  },
+  "users": {
+    "Rajesh": {
+      "group": "Super Admin",
+      "overrides": []
+    },
+    "Vikram": {
+      "group": "Engineering",
+      "overrides": [
+        "approve_code",
+        "modify_tasks"
+      ]
+    },
+    "Rahul": {
+      "group": "Engineering",
+      "overrides": []
+    },
+    "Priya": {
+      "group": "HR",
+      "overrides": [
+        "edit_salaries"
+      ]
+    },
+    "Sneha": {
+      "group": "Interns",
+      "overrides": []
+    }
+  },
+  "data": {
+    "notice_boards": "Welcome to the intranet. Upcoming holiday on Friday.",
+    "code_repo": [
+      {
+        "repo": "core-api",
+        "status": "Passing"
+      },
+      {
+        "repo": "frontend",
+        "status": "Passing"
+      }
+    ],
+    "salaries": [
+      {
+        "id": 101,
+        "name": "John Doe",
+        "amount": 80000
+      }
+    ],
+    "finance": [
+      {
+        "quarter": "Q3",
+        "revenue": "$5,000,000"
+      }
+    ]
+  },
+  "pending_approvals": [],
+  "jit_grants": {},
+  "audit_logs": []
 }

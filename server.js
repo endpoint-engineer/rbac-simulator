@@ -5,88 +5,218 @@ const fs = require('fs');
 const app = express();
 const PORT = process.env.PORT || 3000;
 
-// Middleware
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Mock Database
 const dbPath = path.join(__dirname, 'database.json');
-let database = {};
-try {
-  const data = fs.readFileSync(dbPath, 'utf8');
-  database = JSON.parse(data);
-} catch (err) {
-  console.error("Error reading database.json", err);
+
+// Helper to read DB
+function readDB() {
+    return JSON.parse(fs.readFileSync(dbPath, 'utf8'));
+}
+// Helper to write DB
+function writeDB(data) {
+    fs.writeFileSync(dbPath, JSON.stringify(data, null, 2));
 }
 
-// RBAC Configuration
-const ROLES = {
-  SUPER_ADMIN: 'Super Admin',
-  FINANCE_MANAGER: 'Finance Manager',
-  SECURITY_OFFICER: 'Security Officer',
-  LEAD_DEVELOPER: 'Lead Developer',
-  HR_DIRECTOR: 'HR Director',
-  INTERN: 'Intern'
+// Logger
+function logEvent(action, user, severity) {
+    const db = readDB();
+    db.audit_logs.unshift({
+        id: Date.now(),
+        timestamp: new Date().toISOString(),
+        action,
+        user,
+        severity // INFO, WARN, CRITICAL
+    });
+    // Keep last 100
+    if (db.audit_logs.length > 100) db.audit_logs.pop();
+    writeDB(db);
+}
+
+// Endpoint map to permissions
+const RESOURCE_PERMISSIONS = {
+    'notice_boards': 'view_notice_boards',
+    'code_repo': 'view_code',
+    'salaries': 'view_employee_records',
+    'finance': 'view_finance'
 };
 
-// Access Control Matrix
-const permissions = {
-  '/api/home': [ROLES.SUPER_ADMIN, ROLES.FINANCE_MANAGER, ROLES.SECURITY_OFFICER, ROLES.LEAD_DEVELOPER, ROLES.HR_DIRECTOR, ROLES.INTERN],
-  '/api/finance': [ROLES.SUPER_ADMIN, ROLES.FINANCE_MANAGER],
-  '/api/code-repo': [ROLES.SUPER_ADMIN, ROLES.LEAD_DEVELOPER],
-  '/api/audit-logs': [ROLES.SUPER_ADMIN, ROLES.SECURITY_OFFICER],
-  '/api/employee-records': [ROLES.SUPER_ADMIN, ROLES.HR_DIRECTOR]
-};
-
-// RBAC Middleware
-function checkPermission(req, res, next) {
-  // In a real app, role would come from a verified JWT token or session.
-  // Here, we simulate by passing it in the 'x-role' header.
-  const userRole = req.headers['x-role'];
-
-  if (!userRole) {
-    return res.status(403).json({ error: 'Forbidden: No role provided' });
-  }
-
-  const endpoint = req.path;
-  const allowedRoles = permissions[endpoint];
-
-  if (!allowedRoles) {
-    return res.status(404).json({ error: 'Not Found' });
-  }
-
-  if (allowedRoles.includes(userRole)) {
-    // If Security Officer tries to POST/PUT/DELETE, deny them (read-only)
-    if (userRole === ROLES.SECURITY_OFFICER && req.method !== 'GET') {
-      return res.status(403).json({ error: 'Forbidden: Read-only access' });
+function hasPermission(userObj, db, requiredPerm) {
+    if (userObj.group === 'Super Admin') return true;
+    
+    // Check JIT grants
+    if (db.jit_grants[userObj.name]) {
+        const grant = db.jit_grants[userObj.name];
+        if (grant.permission === requiredPerm && Date.now() < grant.expiresAt) {
+            return true;
+        }
     }
-    next();
-  } else {
-    return res.status(403).json({ error: `Forbidden: ${userRole} does not have access to this resource.` });
-  }
+
+    const groupPerms = db.groups[userObj.group].base_permissions;
+    if (groupPerms.includes(requiredPerm) || groupPerms.includes('*')) return true;
+    
+    if (userObj.overrides.includes(requiredPerm)) return true;
+    
+    return false;
 }
 
-// Endpoints
-app.get('/api/home', checkPermission, (req, res) => {
-  res.json({ message: database.homeData });
+// Middleware
+function checkPermission(requiredPerm) {
+    return (req, res, next) => {
+        const username = req.headers['x-user'];
+        const db = readDB();
+        
+        if (!username || !db.users[username]) {
+            return res.status(401).json({ error: 'Unauthorized' });
+        }
+        
+        const userObj = db.users[username];
+
+        // Global Lockdown check
+        if (db.system_state.emergency_lockdown && userObj.group !== 'Super Admin') {
+            logEvent(`Access denied due to lockdown: ${req.path}`, username, 'CRITICAL');
+            return res.status(403).json({ error: 'EMERGENCY LOCKDOWN ACTIVE.', requiredPerm: '*' });
+        }
+
+        if (hasPermission(userObj, db, requiredPerm)) {
+            next();
+        } else {
+            logEvent(`403 Access Denied to ${req.path}`, username, 'CRITICAL');
+            return res.status(403).json({ error: `Missing permission: ${requiredPerm}`, requiredPerm });
+        }
+    };
+}
+
+// --- Endpoints ---
+
+// Current User Info
+app.get('/api/user', (req, res) => {
+    const username = req.headers['x-user'];
+    const db = readDB();
+    if (!username || !db.users[username]) return res.status(401).json({error: 'No user'});
+    
+    const user = db.users[username];
+    const groupPerms = db.groups[user.group].base_permissions;
+    const allPerms = [...new Set([...groupPerms, ...user.overrides])];
+    
+    // Check JIT
+    let activeJit = null;
+    if (db.jit_grants[username] && Date.now() < db.jit_grants[username].expiresAt) {
+        activeJit = db.jit_grants[username];
+        allPerms.push(activeJit.permission + " (JIT)");
+    }
+
+    res.json({
+        name: username,
+        group: user.group,
+        privileges: allPerms,
+        jit: activeJit
+    });
 });
 
-app.get('/api/finance', checkPermission, (req, res) => {
-  res.json({ data: database.financeData });
+// Generic Data fetch
+app.get('/api/data/:resource', (req, res) => {
+    const resource = req.params.resource;
+    const requiredPerm = RESOURCE_PERMISSIONS[resource];
+    if (!requiredPerm) return res.status(404).json({error: 'Resource not found'});
+    
+    checkPermission(requiredPerm)(req, res, () => {
+        const db = readDB();
+        res.json({ data: db.data[resource] });
+    });
 });
 
-app.get('/api/code-repo', checkPermission, (req, res) => {
-  res.json({ data: database.codeRepoData });
+// Request Access (JIT)
+app.post('/api/access/request', (req, res) => {
+    const username = req.headers['x-user'];
+    const { resource } = req.body;
+    const requiredPerm = RESOURCE_PERMISSIONS[resource];
+    
+    const db = readDB();
+    db.pending_approvals.push({
+        id: Date.now().toString(),
+        type: 'JIT',
+        user: username,
+        permission: requiredPerm,
+        resource: resource,
+        status: 'Pending'
+    });
+    writeDB(db);
+    logEvent(`Requested access to ${resource}`, username, 'WARN');
+    res.json({ message: 'Request submitted for admin approval.' });
 });
 
-app.get('/api/audit-logs', checkPermission, (req, res) => {
-  res.json({ data: database.auditLogsData });
+// Maker-Checker: Draft Salary Edit
+app.post('/api/salary/edit', checkPermission('edit_salaries'), (req, res) => {
+    const username = req.headers['x-user'];
+    const db = readDB();
+    
+    db.pending_approvals.push({
+        id: Date.now().toString(),
+        type: 'MAKER_CHECKER',
+        user: username,
+        changes: req.body.changes,
+        status: 'Pending Verification'
+    });
+    writeDB(db);
+    logEvent(`Staged salary changes for verification`, username, 'WARN');
+    res.json({ message: 'Changes staged. Pending Super Admin verification.' });
 });
 
-app.get('/api/employee-records', checkPermission, (req, res) => {
-  res.json({ data: database.employeeRecordsData });
+// Admin: Get Approvals, Logs, State
+app.get('/api/admin/dashboard', checkPermission('*'), (req, res) => {
+    const db = readDB();
+    res.json({
+        logs: db.audit_logs,
+        approvals: db.pending_approvals,
+        lockdown: db.system_state.emergency_lockdown
+    });
+});
+
+// Admin: Toggle Lockdown
+app.post('/api/admin/lockdown', checkPermission('*'), (req, res) => {
+    const username = req.headers['x-user'];
+    const db = readDB();
+    db.system_state.emergency_lockdown = req.body.active;
+    writeDB(db);
+    logEvent(`Emergency Lockdown ${req.body.active ? 'ENABLED' : 'DISABLED'}`, username, 'CRITICAL');
+    res.json({ success: true, lockdown: db.system_state.emergency_lockdown });
+});
+
+// Admin: Approve/Reject
+app.post('/api/admin/approve/:id', checkPermission('*'), (req, res) => {
+    const username = req.headers['x-user'];
+    const db = readDB();
+    const idx = db.pending_approvals.findIndex(a => a.id === req.params.id);
+    
+    if (idx === -1) return res.status(404).json({error: 'Not found'});
+    
+    const request = db.pending_approvals[idx];
+    const approved = req.body.approved; // boolean
+    
+    db.pending_approvals.splice(idx, 1); // remove from queue
+    
+    if (approved) {
+        if (request.type === 'JIT') {
+            db.jit_grants[request.user] = {
+                permission: request.permission,
+                expiresAt: Date.now() + 30000 // 30 seconds
+            };
+            logEvent(`Approved JIT access for ${request.user}`, username, 'INFO');
+        } else if (request.type === 'MAKER_CHECKER') {
+            // Apply changes
+            db.data.salaries = request.changes;
+            logEvent(`Verified and committed salary changes by ${request.user}`, username, 'INFO');
+        }
+    } else {
+        logEvent(`Denied ${request.type} request from ${request.user}`, username, 'WARN');
+    }
+    
+    writeDB(db);
+    res.json({ success: true });
 });
 
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+    console.log(`Enterprise IGAM running on port ${PORT}`);
 });

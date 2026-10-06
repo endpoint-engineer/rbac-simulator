@@ -3,44 +3,89 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Corporate RBAC Simulator</title>
+    <title>Enterprise IGAM Platform</title>
     <link rel="stylesheet" href="styles.css">
 </head>
 <body>
     <header>
-        <h1>Corporate Portal</h1>
-        <div class="role-switcher">
-            <label for="role-select">Current Role:</label>
-            <select id="role-select">
-                <option value="Super Admin">Super Admin</option>
-                <option value="Finance Manager">Finance Manager</option>
-                <option value="Security Officer">Security Officer</option>
-                <option value="Lead Developer">Lead Developer</option>
-                <option value="HR Director">HR Director</option>
-                <option value="Intern">Intern</option>
+        <h1>IGAM Platform</h1>
+        <div class="user-switcher">
+            <label for="user-select">Active Identity:</label>
+            <select id="user-select">
+                <option value="Rajesh">Rajesh (Super Admin)</option>
+                <option value="Vikram">Vikram (Senior Dev)</option>
+                <option value="Rahul">Rahul (Junior Dev)</option>
+                <option value="Priya">Priya (HR Manager)</option>
+                <option value="Sneha">Sneha (Intern)</option>
             </select>
         </div>
     </header>
 
     <div class="container">
         <aside class="sidebar">
+            <div id="profile-card" class="profile-card">
+                <h3 id="profile-name">Name</h3>
+                <span id="profile-group" class="badge">Group</span>
+                <h4>Active Privileges:</h4>
+                <ul id="profile-privileges"></ul>
+                <div id="jit-timer-container" class="hidden">
+                    JIT Access Expires In: <span id="jit-timer" class="text-amber"></span>
+                </div>
+            </div>
+            
             <nav>
                 <ul id="nav-links">
-                    <li><a href="#" data-endpoint="/api/home" class="active">Home</a></li>
-                    <li><a href="#" data-endpoint="/api/finance">Finance</a></li>
-                    <li><a href="#" data-endpoint="/api/code-repo">Code Repo</a></li>
-                    <li><a href="#" data-endpoint="/api/audit-logs">Audit Logs</a></li>
-                    <li><a href="#" data-endpoint="/api/employee-records">Employee Records</a></li>
+                    <li><a href="#" data-resource="notice_boards" class="active">Notice Boards</a></li>
+                    <li><a href="#" data-resource="code_repo">Code Repositories</a></li>
+                    <li><a href="#" data-resource="salaries">Salary Records</a></li>
+                    <li><a href="#" data-resource="finance">Finance</a></li>
+                    <li id="admin-nav-item"><a href="#" data-view="admin">Governance Console</a></li>
                 </ul>
             </nav>
         </aside>
 
         <main class="content">
-            <h2 id="page-title">Home</h2>
+            <h2 id="page-title">Notice Boards</h2>
             <div id="message-container"></div>
-            <div id="data-container">
-                <!-- Data will be populated here -->
-                <p>Select a role and navigate to see access control in action.</p>
+            
+            <div id="data-container"></div>
+
+            <div id="locked-view" class="hidden">
+                <div class="lock-icon">🔒</div>
+                <h3>Access Denied</h3>
+                <p>You do not have the required clearance to view this resource.</p>
+                <p class="missing-perm">Required Permission: <span id="req-perm"></span></p>
+                <button id="request-access-btn" class="btn">Request JIT Access</button>
+            </div>
+
+            <div id="admin-console" class="hidden">
+                <div class="admin-panel">
+                    <h3>Global Security Policy</h3>
+                    <div class="lockdown-box">
+                        <span>Emergency Lockdown Mode: blocks all non-admin routes.</span>
+                        <button id="toggle-lockdown-btn" class="btn btn-danger">ENABLE LOCKDOWN</button>
+                    </div>
+                </div>
+
+                <div class="admin-panel">
+                    <h3>Pending Approvals</h3>
+                    <div id="approvals-queue"></div>
+                </div>
+
+                <div class="admin-panel">
+                    <h3>Centralized Audit Logs</h3>
+                    <table class="audit-table">
+                        <thead>
+                            <tr>
+                                <th>Timestamp</th>
+                                <th>Severity</th>
+                                <th>User</th>
+                                <th>Event</th>
+                            </tr>
+                        </thead>
+                        <tbody id="audit-logs-body"></tbody>
+                    </table>
+                </div>
             </div>
         </main>
     </div>
