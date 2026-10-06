@@ -814,7 +814,9 @@ body.has-banner .layout { height: calc(100vh - 40px); margin-top: 40px; }
 .overlay {
   position: fixed;
   inset: 0;
-  background: rgba(0,0,0,0.6);
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(2px);
+  -webkit-backdrop-filter: blur(2px);
   z-index: 200;
 }
 .detail-panel {

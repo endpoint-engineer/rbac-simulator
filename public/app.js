@@ -570,14 +570,17 @@ function renderAuditTable() {
     return;
   }
 
-  tbody.innerHTML = filtered.map(log => `
-    <tr onclick="openAuditDetail(${JSON.stringify(JSON.stringify(log))})">
-      <td>${new Date(log.timestamp).toLocaleTimeString()}</td>
-      <td><span class="sev-badge sev-${log.severity}">${log.severity}</span></td>
-      <td style="color:var(--text-primary);font-weight:500">${log.user}</td>
-      <td>${log.action}</td>
-    </tr>
-  `).join('');
+  tbody.innerHTML = filtered.map(log => {
+    const encodedLog = encodeURIComponent(JSON.stringify(log));
+    return `
+      <tr onclick="openAuditDetail('${encodedLog}')">
+        <td>${new Date(log.timestamp).toLocaleTimeString()}</td>
+        <td><span class="sev-badge sev-${log.severity}">${log.severity}</span></td>
+        <td style="color:var(--text-primary);font-weight:500">${log.user}</td>
+        <td>${log.action}</td>
+      </tr>
+    `;
+  }).join('');
 }
 
 function attachAuditFilters() {
@@ -591,37 +594,50 @@ function attachAuditFilters() {
   });
 }
 
-window.openAuditDetail = function(logJsonStr) {
-  const log = JSON.parse(logJsonStr);
-  document.getElementById('audit-detail-overlay').classList.remove('hidden');
-  document.getElementById('audit-detail-panel').classList.remove('hidden');
-  document.getElementById('audit-detail-content').innerHTML = `
-    <div class="detail-row">
-      <div class="detail-row__label">Event ID</div>
-      <div class="detail-row__value" style="font-family:monospace">${log.id}</div>
-    </div>
-    <div class="detail-row">
-      <div class="detail-row__label">Timestamp</div>
-      <div class="detail-row__value">${new Date(log.timestamp).toLocaleString()}</div>
-    </div>
-    <div class="detail-row">
-      <div class="detail-row__label">Severity</div>
-      <div class="detail-row__value"><span class="sev-badge sev-${log.severity}">${log.severity}</span></div>
-    </div>
-    <div class="detail-row">
-      <div class="detail-row__label">User</div>
-      <div class="detail-row__value">${log.user}</div>
-    </div>
-    <div class="detail-row">
-      <div class="detail-row__label">Event Description</div>
-      <div class="detail-row__value">${log.action}</div>
-    </div>
-  `;
+window.openAuditDetail = function(logEncodedStr) {
+  try {
+    const log = JSON.parse(decodeURIComponent(logEncodedStr));
+    const overlay = document.getElementById('audit-detail-overlay');
+    const panel = document.getElementById('audit-detail-panel');
+    const content = document.getElementById('audit-detail-content');
+    
+    if (overlay) overlay.classList.remove('hidden');
+    if (panel) panel.classList.remove('hidden');
+    
+    if (content) {
+      content.innerHTML = `
+        <div class="detail-row">
+          <div class="detail-row__label">Event ID</div>
+          <div class="detail-row__value" style="font-family:monospace">${log.id}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-row__label">Timestamp</div>
+          <div class="detail-row__value">${new Date(log.timestamp).toLocaleString()}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-row__label">Severity</div>
+          <div class="detail-row__value"><span class="sev-badge sev-${log.severity}">${log.severity}</span></div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-row__label">User</div>
+          <div class="detail-row__value">${log.user}</div>
+        </div>
+        <div class="detail-row">
+          <div class="detail-row__label">Event Description</div>
+          <div class="detail-row__value">${log.action}</div>
+        </div>
+      `;
+    }
+  } catch(err) {
+    console.error("Error opening audit detail:", err);
+  }
 };
 
 window.closeAuditDetail = function() {
-  document.getElementById('audit-detail-overlay').classList.add('hidden');
-  document.getElementById('audit-detail-panel').classList.add('hidden');
+  const overlay = document.getElementById('audit-detail-overlay');
+  const panel = document.getElementById('audit-detail-panel');
+  if (overlay) overlay.classList.add('hidden');
+  if (panel) panel.classList.add('hidden');
 };
 
 // ─── Lockdown ─────────────────────────────────────────────────────────────────
