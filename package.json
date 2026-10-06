@@ -1,0 +1,12 @@
+{
+  "name": "rbac-simulator",
+  "version": "1.0.0",
+  "description": "Corporate RBAC Simulator",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.0"
+  }
+}

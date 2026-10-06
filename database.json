@@ -1,0 +1,21 @@
+{
+  "homeData": "Welcome to the Corporate Intranet. Please use the navigation to access your allowed areas.",
+  "financeData": [
+    { "id": 1, "description": "Q3 Revenue", "amount": "$5,000,000" },
+    { "id": 2, "description": "Q3 Expenses", "amount": "$3,200,000" }
+  ],
+  "codeRepoData": [
+    { "repo": "core-api", "status": "Passing", "lastCommit": "Fixed authentication bug" },
+    { "repo": "frontend-app", "status": "Failing", "lastCommit": "Updated RBAC dashboard" }
+  ],
+  "auditLogsData": [
+    { "timestamp": "2023-10-06T10:00:00Z", "action": "User Login", "user": "finance_mgr_1" },
+    { "timestamp": "2023-10-06T10:05:00Z", "action": "Viewed Q3 Report", "user": "finance_mgr_1" },
+    { "timestamp": "2023-10-06T10:15:00Z", "action": "Failed Login Attempt", "user": "unknown" }
+  ],
+  "employeeRecordsData": [
+    { "id": 101, "name": "Alice Smith", "department": "Engineering" },
+    { "id": 102, "name": "Bob Jones", "department": "Finance" },
+    { "id": 103, "name": "Carol White", "department": "HR" }
+  ]
+}

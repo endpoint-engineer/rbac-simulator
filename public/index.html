@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Corporate RBAC Simulator</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <h1>Corporate Portal</h1>
+        <div class="role-switcher">
+            <label for="role-select">Current Role:</label>
+            <select id="role-select">
+                <option value="Super Admin">Super Admin</option>
+                <option value="Finance Manager">Finance Manager</option>
+                <option value="Security Officer">Security Officer</option>
+                <option value="Lead Developer">Lead Developer</option>
+                <option value="HR Director">HR Director</option>
+                <option value="Intern">Intern</option>
+            </select>
+        </div>
+    </header>
+
+    <div class="container">
+        <aside class="sidebar">
+            <nav>
+                <ul id="nav-links">
+                    <li><a href="#" data-endpoint="/api/home" class="active">Home</a></li>
+                    <li><a href="#" data-endpoint="/api/finance">Finance</a></li>
+                    <li><a href="#" data-endpoint="/api/code-repo">Code Repo</a></li>
+                    <li><a href="#" data-endpoint="/api/audit-logs">Audit Logs</a></li>
+                    <li><a href="#" data-endpoint="/api/employee-records">Employee Records</a></li>
+                </ul>
+            </nav>
+        </aside>
+
+        <main class="content">
+            <h2 id="page-title">Home</h2>
+            <div id="message-container"></div>
+            <div id="data-container">
+                <!-- Data will be populated here -->
+                <p>Select a role and navigate to see access control in action.</p>
+            </div>
+        </main>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>
