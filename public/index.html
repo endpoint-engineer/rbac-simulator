@@ -1,201 +1,226 @@
 <!DOCTYPE html>
-<html lang="en">
+<html class="dark" lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>IGAM — Identity Governance</title>
-  <link rel="preconnect" href="https://fonts.googleapis.com" />
-  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="styles.css" />
+  <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/>
+  <link href="https://fonts.googleapis.com" rel="preconnect"/>
+  <link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet"/>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script id="tailwind-config">
+    tailwind.config = {
+      darkMode: "class",
+      theme: {
+        extend: {
+          colors: {
+            "surface-container-lowest": "#0e0e10",
+            "surface-container-low": "#1c1b1d",
+            "surface-container": "#201f22",
+            "surface-container-highest": "#353437",
+            "surface": "#131315",
+            "primary": "#ffffff",
+            "on-surface": "#e5e1e4",
+            "on-surface-variant": "#c4c7c8",
+            "tertiary-fixed-dim": "#4edea3",
+            "error": "#ffb4ab",
+            "error-container": "#93000a",
+            "border-dim": "#27272a"
+          },
+          fontFamily: {
+            "mono": ["JetBrains Mono", "monospace"],
+            "body": ["Geist", "sans-serif"]
+          }
+        }
+      }
+    };
+  </script>
+  <style>
+    body { background-color: #131315; color: #e5e1e4; font-family: 'Geist', sans-serif; }
+    .scrollbar-none::-webkit-scrollbar { display: none; }
+    .nav-item { display: flex; align-items: center; gap: 0.75rem; padding: 0.5rem 0.75rem; border-radius: 0.375rem; color: #c4c7c8; font-size: 0.875rem; font-weight: 500; transition: all 0.2s; cursor: pointer; }
+    .nav-item:hover { background-color: #201f22; color: #ffffff; }
+    .nav-item.active { background-color: #201f22; color: #4edea3; }
+    .nav-section-title { font-family: 'JetBrains Mono', monospace; font-size: 0.65rem; text-transform: uppercase; letter-spacing: 0.05em; color: #636565; margin-bottom: 0.5rem; padding-left: 0.75rem; font-weight: 600; }
+    .view-section { display: none; }
+    .view-section.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+    .panel { background-color: #0e0e10; border: 1px solid #27272a; border-radius: 0.75rem; padding: 1.5rem; box-shadow: 0 4px 20px rgba(0,0,0,0.5); }
+    .sub-panel { background-color: #1c1b1d; border: 1px solid #27272a; border-radius: 0.5rem; padding: 1rem; }
+    
+    /* Audit Detail Drawer Overlay */
+    .drawer-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.4); backdrop-filter: blur(2px); z-index: 100; display: none; }
+    .drawer-overlay.active { display: block; }
+    .drawer-panel { position: fixed; top: 0; right: -400px; width: 400px; height: 100vh; background: #0e0e10; border-left: 1px solid #27272a; z-index: 101; transition: right 0.3s ease; display: flex; flex-direction: column; }
+    .drawer-panel.active { right: 0; }
+    
+    .trace-connector { position: absolute; left: 11px; top: 24px; bottom: -8px; width: 2px; background: #27272a; }
+    .trace-step:last-child .trace-connector { display: none; }
+  </style>
 </head>
-<body>
+<body class="flex h-screen overflow-hidden antialiased">
 
-  <!-- Lockdown Banner -->
-  <div id="lockdown-banner" class="lockdown-banner hidden">
-    <span class="lockdown-banner__icon">⚠</span>
-    <span>Emergency Lockdown Active — All non-admin routes are blocked</span>
-  </div>
+  <!-- Left Sidebar -->
+  <aside class="w-64 bg-[#0e0e10] border-r border-border-dim flex flex-col flex-shrink-0 z-20">
+    <div class="h-16 flex items-center px-6 border-b border-border-dim">
+      <span class="font-mono text-primary font-bold tracking-wider">IGAM</span>
+      <span class="ml-2 text-on-surface-variant text-xs">Identity Governance</span>
+    </div>
+    
+    <div class="flex-1 overflow-y-auto p-4 space-y-6 scrollbar-none">
+      <div>
+        <div class="nav-section-title">Command Center</div>
+        <a class="nav-item active" data-view="dashboard">
+          <span class="material-symbols-outlined text-[18px]">grid_view</span> Dashboard
+        </a>
+      </div>
+      <div>
+        <div class="nav-section-title">Authorization</div>
+        <a class="nav-item" data-view="simulator">
+          <span class="material-symbols-outlined text-[18px]">account_tree</span> Decision Simulator
+        </a>
+        <a class="nav-item" data-view="requests">
+          <span class="material-symbols-outlined text-[18px]">verified_user</span> Access Requests
+        </a>
+        <a class="nav-item" data-view="jit">
+          <span class="material-symbols-outlined text-[18px]">schedule</span> Active JIT Sessions
+        </a>
+      </div>
+      <div>
+        <div class="nav-section-title">Identities</div>
+        <a class="nav-item" data-view="users">
+          <span class="material-symbols-outlined text-[18px]">group</span> Users &amp; Groups
+        </a>
+      </div>
+      <div id="nav-admin-governance" style="display:none;">
+        <div class="nav-section-title">Governance</div>
+        <a class="nav-item" data-view="audit">
+          <span class="material-symbols-outlined text-[18px]">terminal</span> Audit Trail
+        </a>
+      </div>
+      <div id="nav-admin-system" style="display:none;">
+        <div class="nav-section-title">System</div>
+        <a class="nav-item" data-view="lockdown">
+          <span class="material-symbols-outlined text-[18px]">lock</span> Emergency Lockdown
+        </a>
+      </div>
+    </div>
 
-  <div class="layout" id="app-layout">
-    <!-- ═══════════════════════════════ SIDEBAR ═══════════════════════════════ -->
-    <aside class="sidebar">
-      <div class="sidebar__brand">
-        <div class="sidebar__logo">
-          <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
-            <rect x="2" y="2" width="7" height="7" rx="1.5" fill="#10b981"/>
-            <rect x="11" y="2" width="7" height="7" rx="1.5" fill="#10b981" opacity="0.5"/>
-            <rect x="2" y="11" width="7" height="7" rx="1.5" fill="#10b981" opacity="0.5"/>
-            <rect x="11" y="11" width="7" height="7" rx="1.5" fill="#10b981" opacity="0.3"/>
-          </svg>
-        </div>
-        <div>
-          <div class="sidebar__brand-name">IGAM</div>
-          <div class="sidebar__brand-sub">Identity Governance</div>
+    <!-- Active Identity Widget -->
+    <div class="p-4 border-t border-border-dim bg-[#131315]">
+      <div class="flex items-center gap-3 mb-3">
+        <div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-primary font-bold" id="sidebar-avatar">R</div>
+        <div class="flex-1 overflow-hidden">
+          <div class="text-sm font-medium text-primary truncate" id="sidebar-name">Rajesh</div>
+          <div class="text-xs text-on-surface-variant truncate" id="sidebar-role">Super Admin</div>
         </div>
       </div>
+      <div class="flex items-center gap-2 px-2 py-1 rounded bg-[#041c14] border border-[#064e3b]">
+        <span class="w-2 h-2 rounded-full bg-tertiary-fixed-dim animate-pulse" id="sidebar-status-dot"></span>
+        <span class="font-mono text-[10px] text-tertiary-fixed-dim font-bold tracking-wide" id="sidebar-status-text">SYSTEM SECURE</span>
+      </div>
+    </div>
+  </aside>
 
-      <nav class="sidebar__nav">
-        <div class="nav-section-label">Command Center</div>
-        <a href="#" class="nav-item active" data-view="dashboard">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="1" y="1" width="6" height="6" rx="1" fill="currentColor" opacity="0.8"/><rect x="9" y="1" width="6" height="6" rx="1" fill="currentColor" opacity="0.4"/><rect x="1" y="9" width="6" height="6" rx="1" fill="currentColor" opacity="0.4"/><rect x="9" y="9" width="6" height="6" rx="1" fill="currentColor" opacity="0.2"/></svg>
-          Dashboard
-        </a>
-
-        <div class="nav-section-label">Authorization</div>
-        <a href="#" class="nav-item" data-view="simulator">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M5 8h6M8 5v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Decision Simulator
-        </a>
-        <a href="#" class="nav-item" data-view="requests">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M2 4h12M2 8h8M2 12h5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Access Requests
-        </a>
-        <a href="#" class="nav-item" data-view="jit">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M8 5v3l2 2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Active JIT Sessions
-        </a>
-
-        <div class="nav-section-label">Identities</div>
-        <a href="#" class="nav-item" data-view="users">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="5" r="3" stroke="currentColor" stroke-width="1.5"/><path d="M2 14c0-3.314 2.686-5 6-5s6 1.686 6 5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Users &amp; Groups
-        </a>
-
-        <div class="nav-section-label">Governance</div>
-        <a href="#" class="nav-item" data-view="audit">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><path d="M3 3h10v10H3z" stroke="currentColor" stroke-width="1.5" rx="1"/><path d="M6 6h4M6 9h4M6 12h2" stroke="currentColor" stroke-width="1.2" stroke-linecap="round"/></svg>
-          Audit Trail
-        </a>
-
-        <div class="nav-section-label">System</div>
-        <a href="#" class="nav-item" data-view="lockdown">
-          <svg class="nav-icon" viewBox="0 0 16 16" fill="none"><rect x="3" y="7" width="10" height="8" rx="1.5" stroke="currentColor" stroke-width="1.5"/><path d="M5 7V5a3 3 0 016 0v2" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
-          Emergency Lockdown
-        </a>
-      </nav>
-
-      <!-- Identity Switcher -->
-      <div class="sidebar__identity">
-        <div class="identity-switcher-label">Active Identity</div>
-        <select id="user-select" class="identity-select">
-          <option value="Rajesh">Rajesh</option>
-          <option value="Vikram">Vikram</option>
-          <option value="Rahul">Rahul</option>
-          <option value="Priya">Priya</option>
-          <option value="Sneha">Sneha</option>
+  <!-- Main Content -->
+  <main class="flex-1 flex flex-col h-screen overflow-y-auto relative">
+    
+    <!-- Top Identity Switcher Bar -->
+    <div class="sticky top-0 z-10 bg-surface/90 backdrop-blur-md border-b border-border-dim px-8 py-3 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <span class="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider">Simulated Identity</span>
+        <select id="global-identity-select" class="bg-surface-container-low border border-border-dim text-primary text-sm rounded px-3 py-1.5 focus:outline-none focus:border-tertiary-fixed-dim">
+          <option value="Rajesh">Rajesh (Super Admin)</option>
+          <option value="Vikram">Vikram (Senior Dev)</option>
+          <option value="Rahul">Rahul (Junior Dev)</option>
+          <option value="Priya">Priya (HR Manager)</option>
+          <option value="Sneha">Sneha (Intern)</option>
         </select>
-        <div class="identity-card">
-          <div class="identity-card__avatar" id="sidebar-avatar">R</div>
-          <div class="identity-card__info">
-            <div class="identity-card__name" id="sidebar-name">Rajesh</div>
-            <div class="identity-card__role" id="sidebar-role">Super Admin</div>
-          </div>
-          <div class="status-dot status-dot--green" id="sidebar-status"></div>
-        </div>
-        <div class="identity-card__system-status" id="system-status-text">● System Secure</div>
       </div>
-    </aside>
+      <div id="global-lockdown-banner" class="hidden flex items-center gap-2 text-error bg-error-container/20 px-3 py-1 rounded border border-error/30">
+        <span class="material-symbols-outlined text-[16px]">lock</span>
+        <span class="font-mono text-[11px] font-bold uppercase">Emergency Lockdown Active</span>
+      </div>
+    </div>
 
-    <!-- ═══════════════════════════════ MAIN ═══════════════════════════════ -->
-    <main class="main-content">
-
-      <!-- ── DASHBOARD ── -->
-      <section id="view-dashboard" class="view active-view">
-        <div class="view-header">
-          <div>
-            <h1 class="view-title">Command Center</h1>
-            <p class="view-subtitle">Real-time authorization posture and activity overview</p>
+    <div class="p-8 max-w-5xl mx-auto w-full space-y-8" id="view-container">
+      
+      <!-- VIEW: DASHBOARD -->
+      <section id="view-dashboard" class="view-section active">
+        <div class="mb-6">
+          <h1 class="text-3xl font-bold text-primary mb-1">Command Center</h1>
+          <p class="text-sm text-on-surface-variant">Real-time authorization posture and telemetry overview.</p>
+        </div>
+        
+        <!-- Metrics -->
+        <div class="panel mb-6">
+          <div class="flex items-start justify-between mb-4">
+            <div>
+              <span class="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider block mb-1">Security Posture</span>
+              <div class="flex items-baseline gap-2">
+                <span class="text-4xl font-bold text-primary tracking-tight">98.4</span>
+                <span class="font-mono text-sm text-on-surface-variant">/ 100</span>
+              </div>
+            </div>
+            <div class="flex items-center gap-1.5 px-2.5 py-1 rounded bg-[#041c14] text-tertiary-fixed-dim border border-[#064e3b]" id="dash-health-badge">
+              <span class="w-1.5 h-1.5 rounded-full bg-tertiary-fixed-dim animate-pulse"></span>
+              <span class="font-mono text-[10px] font-semibold tracking-wide">HEALTHY</span>
+            </div>
           </div>
-          <div class="header-identity-badge" id="header-identity-badge">
-            <span id="header-user-name">Rajesh</span>
-            <span class="badge badge--group" id="header-user-group">Super Admin</span>
+          
+          <div class="h-px w-full bg-border-dim mb-4"></div>
+          
+          <div class="grid grid-cols-3 gap-4">
+            <div class="sub-panel">
+              <span class="font-mono text-[10px] text-on-surface-variant block mb-1">PENDING REQ</span>
+              <div class="text-xl font-bold text-primary" id="dash-metric-pending">0</div>
+            </div>
+            <div class="sub-panel">
+              <span class="font-mono text-[10px] text-on-surface-variant block mb-1">ACTIVE JIT</span>
+              <div class="text-xl font-bold text-primary" id="dash-metric-jit">0</div>
+            </div>
+            <div class="sub-panel">
+              <span class="font-mono text-[10px] text-on-surface-variant block mb-1">CRITICAL INCIDENTS</span>
+              <div class="text-xl font-bold text-primary" id="dash-metric-critical">0</div>
+            </div>
           </div>
         </div>
 
-        <div class="metrics-grid">
-          <div class="metric-card">
-            <div class="metric-card__label">Security Posture</div>
-            <div class="metric-card__value metric-card__value--emerald">98.4</div>
-            <div class="metric-card__status">
-              <span class="dot dot--emerald"></span> Healthy
+        <div class="grid grid-cols-3 gap-6">
+          <div class="col-span-2 panel">
+            <div class="flex items-center justify-between mb-4">
+              <h2 class="text-lg font-semibold text-primary">Recent Authorization Activity</h2>
+              <button class="text-primary hover:text-tertiary-fixed-dim font-mono text-[11px] flex items-center" onclick="app.navigateTo('audit')">VIEW ALL <span class="material-symbols-outlined text-[14px] ml-1">arrow_forward</span></button>
+            </div>
+            <div id="dash-recent-activity" class="space-y-2">
+              <div class="text-sm text-on-surface-variant py-4 text-center">Loading activity...</div>
             </div>
           </div>
-          <div class="metric-card">
-            <div class="metric-card__label">Pending Requests</div>
-            <div class="metric-card__value" id="metric-pending">0</div>
-            <div class="metric-card__status metric-card__status--amber" id="metric-pending-label">No pending items</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-card__label">Active JIT Sessions</div>
-            <div class="metric-card__value" id="metric-jit">0</div>
-            <div class="metric-card__status">Temporary grants</div>
-          </div>
-          <div class="metric-card">
-            <div class="metric-card__label">Critical Incidents</div>
-            <div class="metric-card__value metric-card__value--red" id="metric-critical">0</div>
-            <div class="metric-card__status">Last 24 hours</div>
-          </div>
-        </div>
-
-        <div class="dashboard-grid">
-          <div class="panel panel--wide">
-            <div class="panel__header">
-              <h3 class="panel__title">Recent Authorization Activity</h3>
-              <a href="#" class="panel__link" data-view="audit">View all →</a>
-            </div>
-            <div id="recent-activity-list" class="activity-list">
-              <div class="empty-state">Loading activity…</div>
-            </div>
-          </div>
-
-          <div class="panel">
-            <div class="panel__header">
-              <h3 class="panel__title">System Health</h3>
-            </div>
-            <div class="health-list">
-              <div class="health-row">
-                <span class="health-row__label">Authorization Engine</span>
-                <span class="badge badge--emerald">Operational</span>
-              </div>
-              <div class="health-row">
-                <span class="health-row__label">Audit Logger</span>
-                <span class="badge badge--emerald">Operational</span>
-              </div>
-              <div class="health-row">
-                <span class="health-row__label">JIT Grant Service</span>
-                <span class="badge badge--emerald">Operational</span>
-              </div>
-              <div class="health-row">
-                <span class="health-row__label">Emergency Lockdown</span>
-                <span id="health-lockdown-badge" class="badge badge--emerald">Inactive</span>
-              </div>
-              <div class="health-row">
-                <span class="health-row__label">Maker-Checker Queue</span>
-                <span class="badge badge--emerald" id="health-maker-badge">Clear</span>
-              </div>
+          <div class="col-span-1 panel">
+            <h2 class="text-lg font-semibold text-primary mb-4">System Health</h2>
+            <div class="space-y-3" id="dash-system-health">
+              <!-- populated dynamically -->
             </div>
           </div>
         </div>
       </section>
 
-      <!-- ── DECISION SIMULATOR ── -->
-      <section id="view-simulator" class="view">
-        <div class="view-header">
-          <div>
-            <h1 class="view-title">Authorization Decision Simulator</h1>
-            <p class="view-subtitle">Evaluate access against real RBAC policy without triggering side effects</p>
+      <!-- VIEW: SIMULATOR -->
+      <section id="view-simulator" class="view-section">
+        <div class="mb-6">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="material-symbols-outlined text-primary text-[24px]">account_tree</span>
+            <h1 class="text-3xl font-bold text-primary">Decision Simulator</h1>
           </div>
+          <p class="text-sm text-on-surface-variant">Evaluate access against real RBAC backend policy without side effects.</p>
         </div>
 
-        <div class="simulator-layout">
-          <div class="panel simulator-controls">
-            <div class="panel__header">
-              <h3 class="panel__title">Configure Evaluation</h3>
-            </div>
-            <div class="form-group">
-              <label class="form-label">User Identity</label>
-              <select id="sim-user" class="form-select">
+        <div class="grid grid-cols-2 gap-6">
+          <div class="panel space-y-6 h-fit">
+            <div>
+              <label class="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider block mb-2">Subject (User)</label>
+              <select id="sim-user" class="w-full bg-surface-container border border-border-dim rounded p-2 text-sm text-primary focus:outline-none focus:border-tertiary-fixed-dim">
                 <option value="Rajesh">Rajesh (Super Admin)</option>
                 <option value="Vikram">Vikram (Senior Dev)</option>
                 <option value="Rahul" selected>Rahul (Junior Dev)</option>
@@ -203,172 +228,197 @@
                 <option value="Sneha">Sneha (Intern)</option>
               </select>
             </div>
-            <div class="form-group">
-              <label class="form-label">Target Resource</label>
-              <select id="sim-resource" class="form-select">
+            <div>
+              <label class="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider block mb-2">Object (Resource)</label>
+              <select id="sim-resource" class="w-full bg-surface-container border border-border-dim rounded p-2 text-sm text-primary focus:outline-none focus:border-tertiary-fixed-dim">
                 <option value="notice_boards">Notice Boards</option>
                 <option value="code_repo">Code Repository</option>
                 <option value="salaries" selected>Salary Records</option>
                 <option value="finance">Finance Reports</option>
               </select>
             </div>
-            <div class="form-group">
-              <label class="form-label">Requested Action</label>
-              <select id="sim-action" class="form-select">
+            <div>
+              <label class="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider block mb-2">Action</label>
+              <select id="sim-action" class="w-full bg-surface-container border border-border-dim rounded p-2 text-sm text-primary focus:outline-none focus:border-tertiary-fixed-dim">
                 <option value="READ">READ</option>
               </select>
             </div>
-            <button id="evaluate-btn" class="btn btn--primary btn--full">
-              Evaluate Access
+            <button id="sim-eval-btn" class="w-full py-3 bg-primary text-surface font-semibold rounded hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
+              <span class="material-symbols-outlined text-[18px]">terminal</span> Evaluate Access
             </button>
           </div>
 
-          <div class="simulator-result" id="simulator-result">
-            <div class="result-placeholder">
-              <div class="result-placeholder__icon">⊙</div>
-              <p>Configure the identity and resource above, then click <strong>Evaluate Access</strong> to see the authorization decision trace.</p>
+          <div class="panel" id="sim-result-container">
+            <div class="h-full flex flex-col items-center justify-center text-center text-on-surface-variant space-y-3 min-h-[300px]">
+              <span class="material-symbols-outlined text-4xl opacity-50">policy</span>
+              <p class="text-sm">Configure the request on the left and click Evaluate Access to see the backend authorization trace.</p>
             </div>
           </div>
         </div>
       </section>
 
-      <!-- ── ACCESS REQUESTS ── -->
-      <section id="view-requests" class="view">
-        <div class="view-header">
-          <div>
-            <h1 class="view-title">Access Requests</h1>
-            <p class="view-subtitle">Pending JIT escalations and Maker-Checker approvals</p>
+      <!-- VIEW: REQUESTS -->
+      <section id="view-requests" class="view-section">
+        <div class="mb-6">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="material-symbols-outlined text-primary text-[24px]">verified_user</span>
+            <h1 class="text-3xl font-bold text-primary">Access Requests</h1>
           </div>
+          <p class="text-sm text-on-surface-variant">Pending JIT escalations and Maker-Checker approvals.</p>
         </div>
 
+        <div class="panel mb-6">
+          <h2 class="text-lg font-semibold text-primary mb-4">Request JIT Access</h2>
+          <div class="flex gap-4 items-end">
+            <div class="flex-1">
+              <label class="font-mono text-[10px] text-on-surface-variant uppercase tracking-wider block mb-2">Resource Needed</label>
+              <select id="req-resource" class="w-full bg-surface-container border border-border-dim rounded p-2 text-sm text-primary focus:outline-none">
+                <option value="notice_boards">Notice Boards</option>
+                <option value="code_repo">Code Repository</option>
+                <option value="salaries">Salary Records</option>
+                <option value="finance">Finance Reports</option>
+              </select>
+            </div>
+            <button id="req-submit-btn" class="py-2 px-6 bg-surface-container-highest hover:bg-[#454545] text-primary border border-border-dim rounded text-sm font-medium transition-colors">
+              Submit Request
+            </button>
+          </div>
+          <p class="text-xs text-on-surface-variant mt-3">Submitting as: <strong class="text-primary" id="req-identity-label"></strong>. Requires Super Admin approval.</p>
+        </div>
+
+        <div class="panel mb-6" id="req-approval-queue-panel" style="display:none;">
+          <div class="flex items-center justify-between mb-4">
+            <h2 class="text-lg font-semibold text-primary">Approval Queue (Admin)</h2>
+            <button class="text-primary hover:text-tertiary-fixed-dim font-mono text-[11px] flex items-center" onclick="app.loadRequests()">REFRESH <span class="material-symbols-outlined text-[14px] ml-1">refresh</span></button>
+          </div>
+          <div id="req-approval-list" class="space-y-3"></div>
+        </div>
+
+        <div class="panel border-t-4 border-t-[#f59e0b]" id="req-maker-panel" style="display:none;">
+          <div class="flex items-center gap-2 mb-2">
+            <span class="material-symbols-outlined text-[#f59e0b] text-[18px]">rule</span>
+            <h2 class="text-lg font-semibold text-primary">Maker-Checker: Salary Edit</h2>
+          </div>
+          <p class="text-sm text-on-surface-variant mb-4">As Priya (HR Manager), you can stage a salary modification. The change enters a verification queue and is only committed when Super Admin approves it.</p>
+          <button id="req-stage-btn" class="py-2 px-4 bg-[#f59e0b] hover:bg-[#d97706] text-[#0e0e10] rounded font-semibold text-sm transition-colors">
+            Stage Salary Increase (+$8,000)
+          </button>
+        </div>
+      </section>
+
+      <!-- VIEW: JIT -->
+      <section id="view-jit" class="view-section">
+        <div class="mb-6">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="material-symbols-outlined text-primary text-[24px]">schedule</span>
+            <h1 class="text-3xl font-bold text-primary">Active JIT Sessions</h1>
+          </div>
+          <p class="text-sm text-on-surface-variant">Temporary privilege grants with automatic backend expiration.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-6" id="jit-list">
+          <div class="text-sm text-on-surface-variant">Loading sessions...</div>
+        </div>
+      </section>
+
+      <!-- VIEW: USERS -->
+      <section id="view-users" class="view-section">
+        <div class="mb-6">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="material-symbols-outlined text-primary text-[24px]">group</span>
+            <h1 class="text-3xl font-bold text-primary">Users &amp; Groups</h1>
+          </div>
+          <p class="text-sm text-on-surface-variant">Identity profiles, group memberships, and derived backend privileges.</p>
+        </div>
+        <div class="grid grid-cols-2 gap-6" id="users-grid"></div>
+      </section>
+
+      <!-- VIEW: AUDIT -->
+      <section id="view-audit" class="view-section">
+        <div class="mb-6 flex justify-between items-end">
+          <div>
+            <div class="flex items-center gap-2 mb-1">
+              <span class="material-symbols-outlined text-primary text-[24px]">terminal</span>
+              <h1 class="text-3xl font-bold text-primary">Audit Trail</h1>
+            </div>
+            <p class="text-sm text-on-surface-variant">Immutable, centralized record of all backend authorization events.</p>
+          </div>
+          <button class="text-primary hover:text-tertiary-fixed-dim font-mono text-[11px] flex items-center border border-border-dim bg-surface-container-lowest px-3 py-1.5 rounded" onclick="app.loadAudit()">REFRESH <span class="material-symbols-outlined text-[14px] ml-1">refresh</span></button>
+        </div>
+        
         <div class="panel">
-          <div class="panel__header">
-            <h3 class="panel__title">Submit New Request</h3>
+          <div class="flex gap-2 mb-4">
+            <button class="audit-filter px-3 py-1 text-xs font-mono rounded bg-surface-container-highest text-primary border border-border-dim" data-filter="ALL">ALL</button>
+            <button class="audit-filter px-3 py-1 text-xs font-mono rounded bg-surface-container text-on-surface-variant border border-transparent hover:text-primary" data-filter="INFO">INFO</button>
+            <button class="audit-filter px-3 py-1 text-xs font-mono rounded bg-surface-container text-on-surface-variant border border-transparent hover:text-primary" data-filter="WARN">WARN</button>
+            <button class="audit-filter px-3 py-1 text-xs font-mono rounded bg-surface-container text-on-surface-variant border border-transparent hover:text-primary" data-filter="CRITICAL">CRITICAL</button>
           </div>
-          <div class="request-form">
-            <select id="req-resource" class="form-select">
-              <option value="notice_boards">Notice Boards</option>
-              <option value="code_repo">Code Repository</option>
-              <option value="salaries">Salary Records</option>
-              <option value="finance">Finance Reports</option>
-            </select>
-            <button id="submit-request-btn" class="btn btn--primary">Request JIT Access</button>
-          </div>
-          <p class="form-hint">Submitting as: <span id="req-submitter" class="text-muted-bright"></span>. Requires Super Admin approval.</p>
-        </div>
-
-        <div class="panel" style="margin-top: 1.5rem;">
-          <div class="panel__header">
-            <h3 class="panel__title">Approval Queue</h3>
-            <button id="refresh-requests-btn" class="btn btn--ghost btn--sm">Refresh</button>
-          </div>
-          <div id="approval-queue-list">
-            <div class="empty-state">No pending requests.</div>
-          </div>
-        </div>
-
-        <div id="maker-checker-panel" class="panel hidden" style="margin-top: 1.5rem;">
-          <div class="panel__header">
-            <h3 class="panel__title">Maker-Checker: Salary Edit</h3>
-          </div>
-          <p class="view-subtitle" style="margin-bottom:1rem;">As Priya (HR Manager), you can stage a salary modification. The change enters a verification queue and is only committed when the Super Admin approves it.</p>
-          <button id="stage-salary-btn" class="btn btn--amber">Stage Salary Increase (+\$8,000)</button>
-        </div>
-      </section>
-
-      <!-- ── JIT SESSIONS ── -->
-      <section id="view-jit" class="view">
-        <div class="view-header">
-          <div>
-            <h1 class="view-title">Active JIT Sessions</h1>
-            <p class="view-subtitle">Temporary privilege grants with automatic expiry</p>
-          </div>
-        </div>
-        <div id="jit-sessions-list">
-          <div class="empty-state">No active JIT sessions.</div>
-        </div>
-      </section>
-
-      <!-- ── USERS & GROUPS ── -->
-      <section id="view-users" class="view">
-        <div class="view-header">
-          <div>
-            <h1 class="view-title">Users &amp; Groups</h1>
-            <p class="view-subtitle">Identity profiles, group membership, and privilege assignments</p>
-          </div>
-        </div>
-        <div id="users-grid" class="users-grid"></div>
-      </section>
-
-      <!-- ── AUDIT TRAIL ── -->
-      <section id="view-audit" class="view">
-        <div class="view-header">
-          <div>
-            <h1 class="view-title">Audit Trail</h1>
-            <p class="view-subtitle">Centralized record of all authorization events</p>
-          </div>
-          <button id="refresh-audit-btn" class="btn btn--ghost">Refresh</button>
-        </div>
-        <div class="panel">
-          <div class="audit-filter-row">
-            <button class="audit-filter active" data-filter="ALL">All</button>
-            <button class="audit-filter" data-filter="INFO">INFO</button>
-            <button class="audit-filter" data-filter="WARN">WARN</button>
-            <button class="audit-filter" data-filter="CRITICAL">CRITICAL</button>
-          </div>
-          <table class="audit-table" id="audit-table">
-            <thead>
-              <tr>
-                <th>Time</th>
-                <th>Severity</th>
-                <th>User</th>
-                <th>Event</th>
-              </tr>
-            </thead>
-            <tbody id="audit-tbody">
-              <tr><td colspan="4" class="empty-state">No log entries yet.</td></tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <!-- ── EMERGENCY LOCKDOWN ── -->
-      <section id="view-lockdown" class="view">
-        <div class="view-header">
-          <div>
-            <h1 class="view-title">Emergency Lockdown</h1>
-            <p class="view-subtitle">Global policy override — blocks all non-admin routes instantly</p>
-          </div>
-        </div>
-
-        <div class="lockdown-status-card" id="lockdown-status-card">
-          <div class="lockdown-state-indicator" id="lockdown-state-indicator">
-            <div class="lockdown-icon" id="lockdown-icon">🔓</div>
-            <div class="lockdown-state-text" id="lockdown-state-text">NORMAL</div>
-            <div class="lockdown-state-sub" id="lockdown-state-sub">All authorization policies are active and enforced.</div>
-          </div>
-          <div class="lockdown-actions" id="lockdown-admin-actions" style="display:none;">
-            <button id="toggle-lockdown-btn" class="btn btn--danger btn--lg">Enable Emergency Lockdown</button>
-            <p class="form-hint" style="margin-top:0.75rem;text-align:center;">Only visible to Super Admin. This action is logged.</p>
-          </div>
-          <div class="lockdown-non-admin" id="lockdown-non-admin" style="display:none;">
-            <p class="text-muted">Lockdown management requires Super Admin clearance.</p>
+          
+          <div class="overflow-x-auto">
+            <table class="w-full text-left text-sm">
+              <thead class="text-xs text-on-surface-variant font-mono uppercase bg-surface-container-low border-y border-border-dim">
+                <tr>
+                  <th class="px-4 py-3 font-medium">Timestamp</th>
+                  <th class="px-4 py-3 font-medium">Severity</th>
+                  <th class="px-4 py-3 font-medium">User</th>
+                  <th class="px-4 py-3 font-medium">Event</th>
+                </tr>
+              </thead>
+              <tbody id="audit-tbody" class="divide-y divide-border-dim">
+                <!-- populated dynamically -->
+              </tbody>
+            </table>
           </div>
         </div>
       </section>
 
-    </main>
+      <!-- VIEW: LOCKDOWN -->
+      <section id="view-lockdown" class="view-section">
+        <div class="mb-6">
+          <div class="flex items-center gap-2 mb-1">
+            <span class="material-symbols-outlined text-primary text-[24px]">lock</span>
+            <h1 class="text-3xl font-bold text-primary">Emergency Lockdown</h1>
+          </div>
+          <p class="text-sm text-on-surface-variant">Global backend policy override. Severs all non-admin routes instantly.</p>
+        </div>
+
+        <div class="panel border-t-4 transition-colors duration-300" id="lockdown-panel" style="border-top-color: #4edea3;">
+          <div class="flex items-start justify-between mb-6">
+            <div class="flex items-center gap-4">
+              <span class="material-symbols-outlined text-4xl" id="lockdown-icon" style="color: #4edea3;">lock_open</span>
+              <div>
+                <h2 class="text-2xl font-bold tracking-wider" id="lockdown-status-text" style="color: #4edea3;">NORMAL</h2>
+                <p class="text-sm text-on-surface-variant mt-1" id="lockdown-desc">All authorization policies are active and enforced.</p>
+              </div>
+            </div>
+            <span class="font-mono text-[10px] px-2 py-1 rounded bg-surface-container border border-border-dim text-on-surface-variant" id="lockdown-badge">GUARDRAILS ON</span>
+          </div>
+          
+          <div id="lockdown-actions">
+            <!-- populated dynamically -->
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+
+  <!-- Audit Drawer -->
+  <div class="drawer-overlay" id="audit-drawer-overlay"></div>
+  <div class="drawer-panel" id="audit-drawer">
+    <div class="h-16 flex items-center justify-between px-6 border-b border-border-dim">
+      <h3 class="font-semibold text-primary">Event Detail</h3>
+      <button class="text-on-surface-variant hover:text-primary transition-colors" id="close-drawer-btn">
+        <span class="material-symbols-outlined text-[20px]">close</span>
+      </button>
+    </div>
+    <div class="p-6 space-y-4 overflow-y-auto" id="audit-drawer-content">
+      <!-- content -->
+    </div>
   </div>
 
-  <!-- Detail slide-over panel for audit logs -->
-  <div id="audit-detail-overlay" class="overlay hidden" onclick="closeAuditDetail()"></div>
-  <div id="audit-detail-panel" class="detail-panel hidden">
-    <div class="detail-panel__header">
-      <h3>Event Detail</h3><button onclick="closeAuditDetail()" class="btn btn--ghost btn--sm" style="font-size: 16px;">&times;</button></div>
-    <div id="audit-detail-content"></div>
-  </div>
+  <!-- Toast Container -->
+  <div id="toast-container" class="fixed bottom-6 right-6 z-[200] flex flex-col gap-2 pointer-events-none"></div>
 
   <script src="app.js"></script>
 </body>
 </html>
-
